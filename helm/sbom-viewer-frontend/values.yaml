@@ -1,0 +1,115 @@
+deployment:
+  enabled: true
+  command: []
+  args: []
+  name: sbom-viewer-frontend
+  labels:
+    app: sbom-viewer-frontend
+  image:
+    name: <your-registry>/sbom-viewer
+    tag: frontend-latest
+    pullPolicy: "IfNotPresent"
+  nameOverride: "sbom-viewer-frontend"
+  fullnameOverride: "sbom-viewer-frontend"
+  replicasCount: 1
+  autoscaling:
+    enabled: false
+  volumes:
+    fromSecrets: []
+    fromConfigMaps: []
+    fromPvc: []
+    fromNFS: []
+    emptyDir: []
+  env:
+    fromSecrets: []
+    regular:
+      BACKEND_API_URL: "http://sbom-viewer-backend:8000"
+    fromConfigMaps: []
+  podAnnotations: {}
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1000Mi
+    requests:
+      cpu: 50m
+      memory: 50Mi
+
+  podSecurityContext: {}
+  containerSecurityContext: {}
+  readiness:
+    openContainerPort: false
+    openServicePort: false
+    includeReadinessProbe: false
+  liveness:
+    includeLivenessProbe: false
+  nodeSelector: []
+  tolerations: []
+  affinity:
+    podSelfAntiAffinity:
+      enabled: false
+    nodeAffinity:
+      enabled: false
+  revisionHistoryLimit: 3
+
+service:
+  enabled: true
+  services:
+  - name: "sbom-viewer-frontend"
+    annotations: {}
+    labels: {}
+    enableProbePort: true
+    type: ClusterIP
+    ports:
+    - name: service-port
+      protocol: TCP
+      port: 3000
+      targetPort: 3000
+    selectDeployment: true
+    selector: {}
+
+networkpolicy:
+  enabled: false
+
+serviceAccount:
+  enabled: false
+
+configMaps:
+  enabled: false
+
+secrets:
+  enabled: false
+
+storageClass:
+  enabled: false
+
+pvc:
+  enabled: false
+  s3:
+    volumes: []
+
+ingress:
+  enabled: true
+  ingresses:
+  - name: "sbom-viewer-ingress"
+    ingressClassName: nginx
+    annotations:
+      cert-manager.io/cluster-issuer: <your-cluster-issuer>
+    labels: {}
+    hosts:
+    - host: sbom.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+          backend:
+            service:
+              name: sbom-viewer-frontend
+              port:
+                number: 3000
+
+    tls:
+    - secretName: sbom-viewer-tls
+      hosts:
+      - sbom.example.com
+
+job:
+  enabled: false

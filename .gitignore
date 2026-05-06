@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+.env
+
+# Node
+node_modules/
+.next/
+
+# Next.js
+.turbo/
+.out/
+
+# Python testing
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+
+# Environment overrides
+.env.local
+.env.*.local
+
+# OS artifacts
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# IDE
+.idea/
+.vscode/

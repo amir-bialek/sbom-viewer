@@ -1,0 +1,106 @@
+deployment:
+  enabled: true
+  command: []
+  args: []
+  name: sbom-viewer-backend
+  labels:
+    app: sbom-viewer-backend
+  image:
+    name: <your-registry>/sbom-viewer
+    tag: backend-latest
+    pullPolicy: "IfNotPresent"
+  imagePullSecrets: []
+  nameOverride: "sbom-viewer-backend"
+  fullnameOverride: "sbom-viewer-backend"
+  replicasCount: 1
+  autoscaling:
+    enabled: false
+  volumes:
+    fromSecrets: []
+    fromConfigMaps: []
+    fromPvc:
+    - pvcName: sbom-viewer-storage
+      mountPath: /app/storage
+      readOnly: true
+    fromNFS: []
+    emptyDir: []
+  env:
+    fromSecrets: []
+    regular: []
+    fromConfigMaps: []
+  podAnnotations: {}
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1000Mi
+    requests:
+      cpu: 50m
+      memory: 50Mi
+
+  podSecurityContext:
+    fsGroup: 999
+  containerSecurityContext: {}
+  readiness:
+    openContainerPort: false
+    openServicePort: false
+    includeReadinessProbe: false
+  liveness:
+    includeLivenessProbe: false
+  nodeSelector: []
+  tolerations: []
+  affinity:
+    podSelfAntiAffinity:
+      enabled: false
+    nodeAffinity:
+      enabled: false
+  revisionHistoryLimit: 3
+
+service:
+  enabled: true
+  services:
+  - name: "sbom-viewer-backend"
+    annotations: {}
+    labels: {}
+    enableProbePort: true
+    type: ClusterIP
+    ports:
+    - name: service-port
+      protocol: TCP
+      port: 8000
+      targetPort: 8000
+    selectDeployment: true
+    selector: {}
+
+networkpolicy:
+  enabled: false
+
+serviceAccount:
+  enabled: true
+  name: sbom-viewer-backend
+
+configMaps:
+  enabled: false
+
+secrets:
+  enabled: false
+
+storageClass:
+  enabled: false
+
+pvc:
+  enabled: true
+  default: []
+  s3:
+    storageClassName: s3-csi
+    defaultRegion: <your-region>
+    volumes:
+    - name: sbom-viewer-storage
+      bucket: <your-s3-bucket>
+      prefix: ""
+      storage: 10Gi
+
+ingress:
+  enabled: false
+
+job:
+  enabled: false
