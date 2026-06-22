@@ -1,0 +1,96 @@
+name: Enrich SBOM
+description: Enrich a Syft CycloneDX SBOM with Trivy vulnerabilities and Annex B compliance metadata.
+
+inputs:
+  syft-sbom-path:
+    description: Path to the raw Syft CycloneDX file produced by the caller.
+    required: true
+  output-path:
+    description: Where to write the enriched CycloneDX file.
+    required: true
+  enable-trivy:
+    description: If 'true', run Trivy and merge vulnerabilities[] into the SBOM.
+    required: false
+    default: 'false'
+  enable-annex-b:
+    description: If 'true', inject Annex B compliance metadata into the SBOM.
+    required: false
+    default: 'true'
+  trivy-version:
+    description: Trivy binary version pin (must include the leading 'v').
+    required: false
+    default: 'v0.71.1'
+
+outputs:
+  enriched-sbom-path:
+    description: Path to the enriched SBOM file (echo of output-path).
+    value: ${{ inputs.output-path }}
+
+runs:
+  using: composite
+  steps:
+    - name: Install Trivy
+      if: inputs.enable-trivy == 'true'
+      uses: aquasecurity/setup-trivy@v0.3.1
+      with:
+        version: ${{ inputs.trivy-version }}
+
+    - name: Scan Syft SBOM for vulnerabilities
+      if: inputs.enable-trivy == 'true'
+      shell: bash
+      run: |
+        trivy sbom "${{ inputs.syft-sbom-path }}" \
+          --format cyclonedx \
+          --output trivy.cdx.json \
+          --exit-code 0 \
+          --severity UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL \
+          --scanners vuln
+
+    - name: Merge Trivy vulnerabilities into Syft SBOM
+      if: inputs.enable-trivy == 'true'
+      shell: bash
+      run: |
+        python3 "${{ github.action_path }}/../../scripts/merge-trivy-vulns.py" \
+          "${{ inputs.syft-sbom-path }}" \
+          trivy.cdx.json \
+          "${{ inputs.output-path }}"
+
+    - name: Copy Syft SBOM to output (no Trivy)
+      if: inputs.enable-trivy != 'true'
+      shell: bash
+      run: cp "${{ inputs.syft-sbom-path }}" "${{ inputs.output-path }}"
+
+    - name: Inject Annex B metadata
+      if: inputs.enable-annex-b == 'true'
+      shell: bash
+      run: |
+        python3 "${{ github.action_path }}/../../scripts/inject-annex-b.py" \
+          "${{ inputs.output-path }}" \
+          "${{ inputs.output-path }}"
+
+    - name: Summarize vulnerabilities
+      if: inputs.enable-trivy == 'true'
+      shell: bash
+      run: |
+        severities=$(jq -r '
+          .vulnerabilities[]?
+          | [.ratings[]?.severity // "unknown"]
+          | map(ascii_downcase)
+          | map(if . == "critical" then 4
+                elif . == "high" then 3
+                elif . == "medium" then 2
+                elif . == "low" then 1
+                else 0 end)
+          | (max // 0)
+          | if . == 4 then "critical"
+            elif . == 3 then "high"
+            elif . == 2 then "medium"
+            elif . == 1 then "low"
+            else "unknown" end
+        ' "${{ inputs.output-path }}" 2>/dev/null || true)
+        total=$(printf '%s\n' "$severities" | grep -c . || true)
+        crit=$(printf '%s\n' "$severities" | grep -c '^critical$' || true)
+        high=$(printf '%s\n' "$severities" | grep -c '^high$' || true)
+        med=$(printf '%s\n' "$severities" | grep -c '^medium$' || true)
+        low=$(printf '%s\n' "$severities" | grep -c '^low$' || true)
+        echo "found ${total:-0} vulnerabilities (${crit:-0} critical, ${high:-0} high, ${med:-0} medium, ${low:-0} low)"

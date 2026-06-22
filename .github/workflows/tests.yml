@@ -1,0 +1,57 @@
+name: Tests
+
+on:
+  pull_request:
+    paths:
+      - 'scripts/**'
+      - 'actions/**'
+      - '.github/workflows/tests.yml'
+  workflow_dispatch:
+
+jobs:
+  unit-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Run script tests
+        run: python3 -m unittest discover -s scripts/tests -v
+
+  action-self-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Generate Syft fixture from alpine:3.18
+        uses: anchore/sbom-action@v0.24.0
+        env:
+          SYFT_CHECK_FOR_APP_UPDATE: "false"
+        with:
+          image: alpine:3.18
+          format: cyclonedx-json
+          output-file: syft-fixture.cdx.json
+          upload-artifact: false
+
+      - name: Run enrich-sbom action
+        uses: ./actions/enrich-sbom
+        with:
+          syft-sbom-path: syft-fixture.cdx.json
+          output-path: enriched.cdx.json
+          enable-trivy: 'true'
+          enable-annex-b: 'true'
+
+      - name: Assert enriched SBOM is valid CycloneDX
+        run: |
+          test -f enriched.cdx.json
+          jq -e '.bomFormat == "CycloneDX"' enriched.cdx.json
+          vuln_count=$(jq '.vulnerabilities | length // 0' enriched.cdx.json)
+          annex_count=$(jq '[.metadata.properties[]? | select(.name | startswith("imagry:annex-b:"))] | length' enriched.cdx.json)
+          echo "vulnerabilities in enriched SBOM: $vuln_count"
+          echo "Annex B document-level properties: $annex_count"
