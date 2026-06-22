@@ -1,0 +1,175 @@
+- generic [active] [ref=e1]:
+  - banner [ref=e2]:
+    - heading "SBOM Dashboard" [level=1] [ref=e3]
+  - main [ref=e4]:
+    - generic [ref=e5]:
+      - generic [ref=e6]:
+        - generic [ref=e7]:
+          - generic [ref=e8]: "SBOM Report:"
+          - combobox "SBOM Report:" [ref=e9]:
+            - option "Select a report..."
+            - option "sbom:"
+            - option "ubuntu:24.04" [selected]
+        - generic [ref=e23]:
+          - button "SBOM" [ref=e24] [cursor=pointer]
+          - button "Trivy" [ref=e25] [cursor=pointer]
+          - button "Merged" [pressed] [ref=e26] [cursor=pointer]
+      - generic [ref=e27]:
+        - generic [ref=e28]:
+          - heading "Metadata" [level=3] [ref=e29]
+          - generic [ref=e30]:
+            - generic [ref=e31]:
+              - term [ref=e32]: Image
+              - definition [ref=e33]: ubuntu
+            - generic [ref=e34]:
+              - term [ref=e35]: Tag
+              - definition [ref=e36]: "24.04"
+            - generic [ref=e37]:
+              - term [ref=e38]: Scan Time
+              - definition [ref=e39]: 6/22/2026, 7:42:13 PM
+            - generic [ref=e40]:
+              - term [ref=e41]: Tool
+              - definition [ref=e42]: syft 1.42.3
+        - generic [ref=e700]:
+          - heading "Annex B" [level=3] [ref=e701]
+          - generic [ref=e702]:
+            - generic [ref=e703]:
+              - term [ref=e704]: Date of Acquisition
+              - definition [ref=e705]: 2026-06-22T12:42:13Z
+            - generic [ref=e706]:
+              - term [ref=e707]: Image Ref
+              - definition [ref=e708]: ubuntu:24.04
+            - generic [ref=e709]:
+              - term [ref=e710]: Product Name
+              - definition [ref=e711]: ubuntu
+            - generic [ref=e712]:
+              - term [ref=e713]: Product Version
+              - definition [ref=e714]: "24.04"
+            - generic [ref=e715]:
+              - term [ref=e716]: Modifications
+              - definition [ref=e717]: none
+      - generic [ref=e43]:
+        - generic [ref=e44]:
+          - paragraph [ref=e45]:
+            - text: Total Components
+            - generic [ref=e47]: "?"
+          - paragraph [ref=e48]: 2,356
+        - generic [ref=e49]:
+          - paragraph [ref=e50]:
+            - text: Libraries
+            - generic [ref=e52]: "?"
+          - paragraph [ref=e53]: "92"
+        - generic [ref=e54]:
+          - paragraph [ref=e55]:
+            - text: Files
+            - generic [ref=e57]: "?"
+          - paragraph [ref=e58]: 2,263
+        - generic [ref=e59]:
+          - paragraph [ref=e60]:
+            - text: License Coverage
+            - generic [ref=e62]: "?"
+          - paragraph [ref=e63]: 3.9%
+        - generic [ref=e64]:
+          - paragraph [ref=e65]:
+            - text: With PURL
+            - generic [ref=e67]: "?"
+          - paragraph [ref=e68]: "92"
+        - generic [ref=e718]:
+          - paragraph [ref=e719]:
+            - text: Critical
+            - generic [ref=e721]: "?"
+          - paragraph [ref=e722]: "0"
+        - generic [ref=e723]:
+          - paragraph [ref=e724]:
+            - text: High
+            - generic [ref=e726]: "?"
+          - paragraph [ref=e727]: "0"
+        - generic [ref=e728]:
+          - paragraph [ref=e729]:
+            - text: Medium
+            - generic [ref=e731]: "?"
+          - paragraph [ref=e732]: "3"
+        - generic [ref=e733]:
+          - paragraph [ref=e734]:
+            - text: Low
+            - generic [ref=e736]: "?"
+          - paragraph [ref=e737]: "1"
+        - generic [ref=e738]:
+          - paragraph [ref=e739]:
+            - text: Unknown
+            - generic [ref=e741]: "?"
+          - paragraph [ref=e742]: "0"
+      - navigation "Tabs" [ref=e11]:
+        - button "Components" [ref=e12] [cursor=pointer]
+        - button "Vulnerabilities 4" [ref=e743] [cursor=pointer]:
+          - text: Vulnerabilities
+          - generic [ref=e744]: "4"
+      - generic [ref=e1412]:
+        - generic [ref=e1413]:
+          - generic [ref=e1414]:
+            - generic [ref=e1415]: "Severity:"
+            - combobox "Severity:" [ref=e1416]:
+              - option "All" [selected]
+              - option "Critical"
+              - option "High"
+              - option "Medium"
+              - option "Low"
+              - option "Unknown"
+          - paragraph [ref=e1417]: 4 of 4 vulnerabilities
+        - table [ref=e1420]:
+          - rowgroup [ref=e1421]:
+            - row "CVE Severity▼ CVSS Source Affected Published Fix Description" [ref=e1422]:
+              - columnheader "CVE" [ref=e1423] [cursor=pointer]
+              - columnheader "Severity▼" [ref=e1424] [cursor=pointer]
+              - columnheader "CVSS" [ref=e1425] [cursor=pointer]
+              - columnheader "Source" [ref=e1426] [cursor=pointer]
+              - columnheader "Affected" [ref=e1427] [cursor=pointer]
+              - columnheader "Published" [ref=e1428] [cursor=pointer]
+              - columnheader "Fix" [ref=e1429] [cursor=pointer]
+              - columnheader "Description" [ref=e1430]
+          - rowgroup [ref=e1431]:
+            - row "CVE-2025-45582 medium 5.6 ubuntu 1▼ 7/12/2025 No GNU Tar through 1.35 allows file overwrite via directory traversal in crafted TAR archives, with a certain two-step proc…" [ref=e1432] [cursor=pointer]:
+              - cell "CVE-2025-45582" [ref=e1433]
+              - cell "medium" [ref=e1434]:
+                - generic [ref=e1435]: medium
+              - cell "5.6" [ref=e1436]
+              - cell "ubuntu" [ref=e1437]
+              - cell "1▼" [ref=e1438]:
+                - button "1▼" [ref=e1439]
+              - cell "7/12/2025" [ref=e1440]
+              - cell "No" [ref=e1441]
+              - cell "GNU Tar through 1.35 allows file overwrite via directory traversal in crafted TAR archives, with a certain two-step proc…" [ref=e1442]
+            - row "CVE-2026-27456 medium 4.7 ubuntu 1▼ 4/4/2026 No util-linux is a random collection of Linux utilities. Prior to version 2.41.4, a TOCTOU (Time-of-Check-Time-of-Use) vuln…" [ref=e1443] [cursor=pointer]:
+              - cell "CVE-2026-27456" [ref=e1444]
+              - cell "medium" [ref=e1445]:
+                - generic [ref=e1446]: medium
+              - cell "4.7" [ref=e1447]
+              - cell "ubuntu" [ref=e1448]
+              - cell "1▼" [ref=e1449]:
+                - button "1▼" [ref=e1450]
+              - cell "4/4/2026" [ref=e1451]
+              - cell "No" [ref=e1452]
+              - cell "util-linux is a random collection of Linux utilities. Prior to version 2.41.4, a TOCTOU (Time-of-Check-Time-of-Use) vuln…" [ref=e1453]
+            - row "CVE-2026-41989 medium 7.5 ubuntu 1▼ 4/23/2026 No Libgcrypt before 1.12.2 sometimes allows a heap-based buffer overflow and denial of service via crafted ECDH ciphertext…" [ref=e1454] [cursor=pointer]:
+              - cell "CVE-2026-41989" [ref=e1455]
+              - cell "medium" [ref=e1456]:
+                - generic [ref=e1457]: medium
+              - cell "7.5" [ref=e1458]
+              - cell "ubuntu" [ref=e1459]
+              - cell "1▼" [ref=e1460]:
+                - button "1▼" [ref=e1461]
+              - cell "4/23/2026" [ref=e1462]
+              - cell "No" [ref=e1463]
+              - cell "Libgcrypt before 1.12.2 sometimes allows a heap-based buffer overflow and denial of service via crafted ECDH ciphertext…" [ref=e1464]
+            - row "CVE-2024-2236 low 5.9 ubuntu 1▼ 3/7/2024 No A timing-based side-channel flaw was found in libgcrypt's RSA implementation. This issue may allow a remote attacker to…" [ref=e1465] [cursor=pointer]:
+              - cell "CVE-2024-2236" [ref=e1466]
+              - cell "low" [ref=e1467]:
+                - generic [ref=e1468]: low
+              - cell "5.9" [ref=e1469]
+              - cell "ubuntu" [ref=e1470]
+              - cell "1▼" [ref=e1471]:
+                - button "1▼" [ref=e1472]
+              - cell "3/7/2024" [ref=e1473]
+              - cell "No" [ref=e1474]
+              - cell "A timing-based side-channel flaw was found in libgcrypt's RSA implementation. This issue may allow a remote attacker to…" [ref=e1475]
+  - alert [ref=e22]

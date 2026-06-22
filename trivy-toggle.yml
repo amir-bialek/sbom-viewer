@@ -1,0 +1,11 @@
+- generic [ref=e6]:
+  - generic [ref=e7]:
+    - generic [ref=e8]: "SBOM Report:"
+    - combobox "SBOM Report:" [ref=e9]:
+      - option "Select a report..."
+      - option "sbom:"
+      - option "ubuntu:24.04" [selected]
+  - generic [ref=e23]:
+    - button "SBOM" [ref=e24] [cursor=pointer]
+    - button "Trivy" [active] [pressed] [ref=e25] [cursor=pointer]
+    - button "Merged" [ref=e26] [cursor=pointer]
