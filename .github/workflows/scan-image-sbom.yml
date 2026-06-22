@@ -7,6 +7,11 @@ on:
         description: 'Full Docker Hub image reference (e.g. ubuntu:24.04)'
         required: true
         type: string
+      enrich:
+        description: 'Enrich the SBOM with Trivy vulnerabilities and Annex B metadata.'
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -35,13 +40,25 @@ jobs:
         with:
           image: ${{ steps.image.outputs.ref }}
           format: cyclonedx-json
-          output-file: sbom.cdx.json
+          output-file: syft.cdx.json
           upload-artifact: false
           syft-args: --scope squashed
+
+      - name: Enrich SBOM
+        if: inputs.enrich
+        uses: amir-bialek/sbom-viewer/actions/enrich-sbom@enrich-sbom-v1.0.0
+        with:
+          syft-sbom-path: syft.cdx.json
+          output-path: sbom.enriched.cdx.json
+          enable-trivy: ${{ inputs.enrich }}
+          enable-annex-b: ${{ inputs.enrich }}
 
       - name: Upload SBOM artifact
         uses: actions/upload-artifact@v7
         with:
           name: sbom-${{ steps.image.outputs.tag }}
-          path: sbom.cdx.json
+          path: |
+            syft.cdx.json
+            ${{ inputs.enrich && 'trivy.cdx.json' || '' }}
+            ${{ inputs.enrich && 'sbom.enriched.cdx.json' || '' }}
           retention-days: 90
