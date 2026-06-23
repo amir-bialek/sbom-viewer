@@ -131,6 +131,8 @@ The suffix tells the dashboard what kind of file it is, so use the right one whe
 
 If you upload a merged file using the plain `.cdx.json` suffix, the dashboard will treat it as a raw SBOM and the Vulnerabilities tab will stay disabled.
 
+> **Known issue:** the dashboard currently requires **both** a base `.cdx.json` and a sibling `.enriched.cdx.json` to be uploaded for the same SBOM. An `.enriched.cdx.json` on its own will not appear in the dropdown, and a base `.cdx.json` on its own will appear but keep the Vulnerabilities tab disabled. So today the CI must upload the pair `<tag>.cdx.json` + `<tag>.enriched.cdx.json`. This will be fixed so a lone `.enriched.cdx.json` is treated as a full SBOM with vulnerabilities.
+
 ## API Endpoints
 
 | Method | Path | Description |
