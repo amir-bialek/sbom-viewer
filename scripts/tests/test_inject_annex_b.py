@@ -126,19 +126,19 @@ class InjectAnnexBTest(unittest.TestCase):
 
         by_name = {c["name"]: c for c in out["components"]}
         expectations = {
-            "libdeb": "OS package (Debian/Ubuntu)",
-            "librpm": "OS package (RPM)",
-            "libapk": "OS package (Alpine)",
-            "libpypi": "Open source Python library",
-            "libnpm": "Open source npm library",
-            "libgolang": "Open source Go library",
-            "libcargo": "Open source Rust crate",
-            "libgem": "Open source Ruby gem",
-            "libmaven": "Open source Java/Maven library",
-            "libgeneric": "Open source library (generic)",
-            "libcomposer": "Open source library (composer)",
-            "libsyftpy": "Open source library (python)",
-            "libunknown": "Unknown source",
+            "libdeb": "apt",
+            "librpm": "rpm",
+            "libapk": "apk",
+            "libpypi": "pypi",
+            "libnpm": "npm",
+            "libgolang": "golang",
+            "libcargo": "cargo",
+            "libgem": "gem",
+            "libmaven": "maven",
+            "libgeneric": "generic",
+            "libcomposer": "composer",
+            "libsyftpy": "python",
+            "libunknown": "generic",
         }
         for name, expected in expectations.items():
             self.assertIn(name, by_name)
@@ -230,7 +230,7 @@ class InjectAnnexBTest(unittest.TestCase):
         for comp in out["components"]:
             ctype = comp.get("type")
             source = _find_prop(comp.get("properties", []), "imagry:annex-b:source")
-            if ctype == "library" and source == "OS package (Debian/Ubuntu)":
+            if ctype == "library" and source == "apt":
                 lib_with_deb += 1
             if ctype == "file" and source is not None:
                 file_with_source += 1

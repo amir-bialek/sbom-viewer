@@ -6,7 +6,6 @@ import SbomSummaryCards from "@/components/SbomSummaryCards";
 import ComponentsTable from "@/components/ComponentsTable";
 import FilterBar from "@/components/FilterBar";
 import MetadataPanel from "@/components/MetadataPanel";
-import ViewModeToggle from "@/components/ViewModeToggle";
 import VulnerabilitiesTab from "@/components/VulnerabilitiesTab";
 import {
   SbomListItem,
@@ -19,7 +18,7 @@ import {
 
 type Tab = "components" | "vulnerabilities";
 
-function defaultView(item: SbomListItem | undefined): ViewMode {
+function pickView(item: SbomListItem | undefined): ViewMode {
   if (!item) return "sbom";
   if (item.has_merged) return "merged";
   if (item.has_trivy) return "trivy";
@@ -53,24 +52,16 @@ export default function DashboardPage() {
         setSboms(data);
         if (data.length > 0) {
           setSelectedId(data[0].id);
-          setView(defaultView(data[0]));
+          setView(pickView(data[0]));
         }
       });
   }, []);
 
-  // When the selected SBOM changes, reset the view per D4.
   useEffect(() => {
     if (!selected) return;
-    setView(defaultView(selected));
+    setView(pickView(selected));
     setOffset(0);
   }, [selected]);
-
-  // If the view changes to sbom while on the vulns tab, snap back.
-  useEffect(() => {
-    if (view === "sbom" && tab === "vulnerabilities") {
-      setTab("components");
-    }
-  }, [view, tab]);
 
   useEffect(() => {
     if (!selectedId) return;
@@ -160,15 +151,6 @@ export default function DashboardPage() {
     <div className="space-y-6 max-w-7xl mx-auto">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <SbomSelector sboms={sboms} selected={selectedId} onChange={handleSbomChange} />
-        {selected && (
-          <ViewModeToggle
-            view={view}
-            hasSbom={selected.has_sbom}
-            hasTrivy={selected.has_trivy}
-            hasMerged={selected.has_merged}
-            onChange={setView}
-          />
-        )}
       </div>
       <MetadataPanel summary={summary} />
       <SbomSummaryCards summary={summary} />

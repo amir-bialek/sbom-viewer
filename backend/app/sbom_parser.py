@@ -9,6 +9,41 @@ ANNEX_B_FIELDS = (
     "modifications",
 )
 
+PURL_SOURCE_MAP = {
+    "deb": "apt",
+    "rpm": "rpm",
+    "apk": "apk",
+    "pypi": "pypi",
+    "npm": "npm",
+    "golang": "golang",
+    "cargo": "cargo",
+    "gem": "gem",
+    "maven": "maven",
+    "generic": "generic",
+}
+
+
+def _purl_ecosystem(purl: str) -> str | None:
+    if not isinstance(purl, str) or not purl.startswith("pkg:"):
+        return None
+    rest = purl[len("pkg:"):]
+    slash = rest.find("/")
+    if slash <= 0:
+        return None
+    return rest[:slash].lower()
+
+
+def _derive_annex_b_source(component: dict) -> str:
+    eco = _purl_ecosystem(component.get("purl", ""))
+    if eco is not None:
+        if eco in PURL_SOURCE_MAP:
+            return PURL_SOURCE_MAP[eco]
+        return eco
+    for prop in component.get("properties", []) or []:
+        if prop.get("name") == "syft:package:type":
+            return prop.get("value") or ""
+    return ""
+
 
 def parse_metadata(data: dict) -> dict:
     metadata = data.get("metadata", {})
@@ -33,6 +68,13 @@ def _component_annex_b_source(component: dict) -> str:
         if prop.get("name") == f"{ANNEX_B_PREFIX}source":
             return prop.get("value", "") or ""
     return ""
+
+
+def _component_annex_b_source_with_fallback(component: dict) -> str:
+    existing = _component_annex_b_source(component)
+    if existing:
+        return existing
+    return _derive_annex_b_source(component)
 
 
 def get_summary(data: dict) -> dict:
@@ -251,6 +293,7 @@ def parse_vulnerabilities(data: dict) -> list[dict]:
                 "version": comp.get("version", ""),
                 "purl": comp.get("purl", ""),
                 "bom_ref": ref,
+                "annex_b_source": _component_annex_b_source_with_fallback(comp),
             })
 
         rows.append({
@@ -297,6 +340,7 @@ def get_vulnerability_detail(data: dict, cve_id: str) -> dict | None:
                     "version": comp.get("version", ""),
                     "purl": comp.get("purl", ""),
                     "bom_ref": ref,
+                    "annex_b_source": _component_annex_b_source_with_fallback(comp),
                     "versions": a.get("versions", []) or [],
                 })
 

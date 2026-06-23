@@ -35,3 +35,12 @@ Thumbs.db
 .vscode/
 
 private/
+
+# Playwright MCP debug artifacts
+.playwright-mcp/
+
+# TypeScript incremental build cache
+*.tsbuildinfo
+
+# Local docker-compose overrides
+docker-compose.override-*.yml

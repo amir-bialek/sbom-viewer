@@ -77,6 +77,7 @@ export interface AffectedComponent {
   version: string;
   purl: string;
   bom_ref: string;
+  annex_b_source?: string;
   versions?: { version?: string; status?: string }[];
 }
 

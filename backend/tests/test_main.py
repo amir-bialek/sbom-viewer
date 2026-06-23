@@ -91,7 +91,7 @@ class TestMainEndpoints(unittest.TestCase):
         raw_sources = {c.get("annex_b_source") for c in raw["components"]}
         merged_sources = {c.get("annex_b_source") for c in merged["components"]}
         self.assertEqual(raw_sources, {""})
-        self.assertIn("OS package (Debian/Ubuntu)", merged_sources)
+        self.assertIn("apt", merged_sources)
 
     def test_vulnerabilities_list_trivy(self):
         out = self.main.api_sbom_vulnerabilities("ubuntu/24.04", view="trivy")

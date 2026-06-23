@@ -195,7 +195,7 @@ class TestComponentAnnexBSource(unittest.TestCase):
         data = _load(_paths.SAMPLE_MERGED)
         result = get_components(data, type_filter="library", limit=5)
         for c in result["components"]:
-            self.assertEqual(c["annex_b_source"], "OS package (Debian/Ubuntu)")
+            self.assertEqual(c["annex_b_source"], "apt")
 
     def test_merged_files_have_empty_annex_b_source(self):
         data = _load(_paths.SAMPLE_MERGED)
@@ -209,7 +209,7 @@ class TestComponentAnnexBSource(unittest.TestCase):
         # at least one library appears with the source
         self.assertGreater(len(result["components"]), 0)
         sources = {c.get("annex_b_source") for c in result["components"]}
-        self.assertIn("OS package (Debian/Ubuntu)", sources)
+        self.assertIn("apt", sources)
 
 
 class TestDependencies(unittest.TestCase):

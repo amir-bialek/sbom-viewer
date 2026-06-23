@@ -13,7 +13,16 @@ interface Props {
   vulnerabilities: Vulnerability[];
 }
 
-type SortKey = "id" | "severity" | "score" | "source" | "affected" | "published" | "fix";
+type SortKey =
+  | "id"
+  | "severity"
+  | "score"
+  | "package"
+  | "installed_via"
+  | "source"
+  | "affected"
+  | "published"
+  | "fix";
 type SortDir = "asc" | "desc";
 
 const SEVERITY_ORDER: Record<string, number> = {
@@ -63,6 +72,40 @@ function formatDate(s: string): string {
   return d.toLocaleDateString();
 }
 
+function packageLabel(v: Vulnerability): string {
+  const list = v.affected_components;
+  if (list.length === 0) return "";
+  const first = list[0];
+  const head = `${first.name} ${first.version}`.trim();
+  if (list.length > 1) {
+    return `${head} + ${list.length - 1} more`;
+  }
+  return head;
+}
+
+function packageSortKey(v: Vulnerability): string {
+  const first = v.affected_components[0];
+  return first ? first.name : "";
+}
+
+function installedViaValues(v: Vulnerability): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const c of v.affected_components) {
+    const s = c.annex_b_source || "";
+    if (s && !seen.has(s)) {
+      seen.add(s);
+      out.push(s);
+    }
+  }
+  return out;
+}
+
+function installedViaSortKey(v: Vulnerability): string {
+  const vals = installedViaValues(v);
+  return vals[0] ?? "";
+}
+
 export default function VulnerabilitiesTab({
   sbomId,
   view,
@@ -103,6 +146,12 @@ export default function VulnerabilitiesTab({
           cmp = sa - sb;
           break;
         }
+        case "package":
+          cmp = packageSortKey(a).localeCompare(packageSortKey(b));
+          break;
+        case "installed_via":
+          cmp = installedViaSortKey(a).localeCompare(installedViaSortKey(b));
+          break;
         case "source":
           cmp = a.source.localeCompare(b.source);
           break;
@@ -233,10 +282,24 @@ export default function VulnerabilitiesTab({
                   {sortIndicator("score")}
                 </th>
                 <th
+                  onClick={() => handleSort("package")}
+                  className="text-left px-4 py-3 font-medium text-gray-700 cursor-pointer select-none hover:bg-gray-100"
+                >
+                  Package
+                  {sortIndicator("package")}
+                </th>
+                <th
+                  onClick={() => handleSort("installed_via")}
+                  className="text-left px-4 py-3 font-medium text-gray-700 cursor-pointer select-none hover:bg-gray-100"
+                >
+                  Installed via
+                  {sortIndicator("installed_via")}
+                </th>
+                <th
                   onClick={() => handleSort("source")}
                   className="text-left px-4 py-3 font-medium text-gray-700 cursor-pointer select-none hover:bg-gray-100"
                 >
-                  Source
+                  Published by
                   {sortIndicator("source")}
                 </th>
                 <th
@@ -250,7 +313,7 @@ export default function VulnerabilitiesTab({
                   onClick={() => handleSort("published")}
                   className="text-left px-4 py-3 font-medium text-gray-700 cursor-pointer select-none hover:bg-gray-100"
                 >
-                  Published
+                  Published date
                   {sortIndicator("published")}
                 </th>
                 <th
@@ -282,6 +345,12 @@ export default function VulnerabilitiesTab({
                       </td>
                       <td className="px-4 py-2 text-gray-700">
                         {v.score !== null ? v.score.toFixed(1) : "-"}
+                      </td>
+                      <td className="px-4 py-2 text-gray-700">
+                        {packageLabel(v) || "-"}
+                      </td>
+                      <td className="px-4 py-2 text-gray-700">
+                        {installedViaValues(v).join(", ") || "-"}
                       </td>
                       <td className="px-4 py-2 text-gray-700">
                         {v.source || "-"}
@@ -326,7 +395,7 @@ export default function VulnerabilitiesTab({
                     </tr>
                     {isOpen && (
                       <tr className="bg-gray-50">
-                        <td colSpan={8} className="px-4 py-3">
+                        <td colSpan={10} className="px-4 py-3">
                           <ul className="text-xs text-gray-700 space-y-1">
                             {v.affected_components.map((c, idx) => (
                               <li
@@ -351,7 +420,7 @@ export default function VulnerabilitiesTab({
               {sorted.length === 0 && (
                 <tr>
                   <td
-                    colSpan={8}
+                    colSpan={10}
                     className="px-4 py-8 text-center text-gray-500"
                   >
                     No vulnerabilities found.
@@ -440,7 +509,7 @@ function VulnerabilityDetailModal({
                     </dd>
                   </div>
                   <div>
-                    <dt className="text-xs text-gray-500">Source</dt>
+                    <dt className="text-xs text-gray-500">Published by</dt>
                     <dd className="mt-0.5 text-gray-900">
                       {detail.source || "-"}
                     </dd>
@@ -452,7 +521,7 @@ function VulnerabilityDetailModal({
                     </dd>
                   </div>
                   <div>
-                    <dt className="text-xs text-gray-500">Published</dt>
+                    <dt className="text-xs text-gray-500">Published date</dt>
                     <dd className="mt-0.5 text-gray-900">
                       {formatDate(detail.published)}
                     </dd>
