@@ -140,7 +140,7 @@ export default function ComponentsTable({
                     <span className="text-gray-500">1</span>
                   )}
                 </td>
-                <td className="px-4 py-2 text-gray-600">
+                <td className="px-4 py-2 text-gray-600 break-all">
                   {c.licenses.length > 0 ? c.licenses.join(", ") : "-"}
                 </td>
                 {hasSourceColumn && (

@@ -67,7 +67,7 @@ def api_sbom_components_grouped(
     type: str | None = Query(None),
     name: str | None = Query(None),
     offset: int = Query(0, ge=0),
-    limit: int = Query(100, ge=1, le=1000),
+    limit: int = Query(50, ge=1, le=1000),
 ):
     v = _parse_view(view)
     data = _load(sbom_id, v)
@@ -81,7 +81,7 @@ def api_sbom_components(
     type: str | None = Query(None),
     name: str | None = Query(None),
     offset: int = Query(0, ge=0),
-    limit: int = Query(100, ge=1, le=1000),
+    limit: int = Query(50, ge=1, le=1000),
 ):
     v = _parse_view(view)
     data = _load(sbom_id, v)

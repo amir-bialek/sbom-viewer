@@ -25,6 +25,8 @@ type SortKey =
   | "fix";
 type SortDir = "asc" | "desc";
 
+const PAGE_SIZE = 50;
+
 const SEVERITY_ORDER: Record<string, number> = {
   critical: 5,
   high: 4,
@@ -119,6 +121,11 @@ export default function VulnerabilitiesTab({
   const [detail, setDetail] = useState<VulnerabilityDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
+  const [page, setPage] = useState(0);
+
+  useEffect(() => {
+    setPage(0);
+  }, [severityFilter, sortKey, sortDir, vulnerabilities]);
 
   const filtered = useMemo(() => {
     if (severityFilter === "all") return vulnerabilities;
@@ -174,6 +181,12 @@ export default function VulnerabilitiesTab({
     });
     return rows;
   }, [filtered, sortKey, sortDir]);
+
+  const total = sorted.length;
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages - 1);
+  const offset = safePage * PAGE_SIZE;
+  const pageRows = sorted.slice(offset, offset + PAGE_SIZE);
 
   const handleSort = (key: SortKey) => {
     if (sortKey === key) {
@@ -329,7 +342,7 @@ export default function VulnerabilitiesTab({
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {sorted.map((v) => {
+              {pageRows.map((v) => {
                 const isOpen = !!expanded[v.id];
                 return (
                   <Fragment key={v.id}>
@@ -430,6 +443,35 @@ export default function VulnerabilitiesTab({
             </tbody>
           </table>
         </div>
+        {total > 0 && (
+          <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200 bg-gray-50">
+            <p className="text-sm text-gray-600">
+              Showing {offset + 1}-{Math.min(offset + PAGE_SIZE, total)} of{" "}
+              {total.toLocaleString()}
+            </p>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setPage((p) => Math.max(0, p - 1))}
+                disabled={safePage === 0}
+                className="px-3 py-1.5 text-sm border border-gray-300 rounded-md bg-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
+              >
+                Previous
+              </button>
+              <span className="text-sm text-gray-600">
+                Page {safePage + 1} of {totalPages}
+              </span>
+              <button
+                onClick={() =>
+                  setPage((p) => Math.min(totalPages - 1, p + 1))
+                }
+                disabled={safePage >= totalPages - 1}
+                className="px-3 py-1.5 text-sm border border-gray-300 rounded-md bg-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {selectedCve && (

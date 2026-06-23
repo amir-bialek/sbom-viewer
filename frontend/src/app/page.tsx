@@ -79,7 +79,7 @@ export default function DashboardPage() {
       type,
       name,
       offset: String(offset),
-      limit: "100",
+      limit: "50",
     });
     fetch(`/api/sboms/${selectedId}/components/grouped?${params}`)
       .then((r) => r.json())
