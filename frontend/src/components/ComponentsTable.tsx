@@ -3,16 +3,8 @@
 import { useState, useMemo } from "react";
 import { GroupedComponent } from "@/types/SbomTypes";
 
-type SortKey = "name" | "version" | "type" | "count" | "licenses";
+type SortKey = "name" | "version" | "type" | "count" | "licenses" | "source";
 type SortDir = "asc" | "desc";
-
-const columns: { label: string; key: SortKey; tooltip?: string }[] = [
-  { label: "Name", key: "name" },
-  { label: "Version", key: "version" },
-  { label: "Type", key: "type" },
-  { label: "Occurrences", key: "count", tooltip: "Number of times this component appears across the image" },
-  { label: "Licenses", key: "licenses" },
-];
 
 interface Props {
   components: GroupedComponent[];
@@ -32,6 +24,29 @@ export default function ComponentsTable({
   const [sortKey, setSortKey] = useState<SortKey | null>("name");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [tooltip, setTooltip] = useState<{ text: string; top: number; left: number } | null>(null);
+
+  const hasSourceColumn = useMemo(
+    () => components.some((c) => !!c.annex_b_source && c.annex_b_source !== ""),
+    [components]
+  );
+
+  const columns: { label: string; key: SortKey; tooltip?: string }[] = useMemo(() => {
+    const cols: { label: string; key: SortKey; tooltip?: string }[] = [
+      { label: "Name", key: "name" },
+      { label: "Version", key: "version" },
+      { label: "Type", key: "type" },
+      { label: "Occurrences", key: "count", tooltip: "Number of times this component appears across the image" },
+      { label: "Licenses", key: "licenses" },
+    ];
+    if (hasSourceColumn) {
+      cols.push({
+        label: "Source",
+        key: "source",
+        tooltip: "Annex B source for this component (e.g. OS package, language ecosystem)",
+      });
+    }
+    return cols;
+  }, [hasSourceColumn]);
 
   const handleSort = (key: SortKey) => {
     if (sortKey === key) {
@@ -62,6 +77,9 @@ export default function ComponentsTable({
         case "type":
           cmp = a.type.localeCompare(b.type);
           break;
+        case "source":
+          cmp = (a.annex_b_source || "").localeCompare(b.annex_b_source || "");
+          break;
         default:
           cmp = 0;
       }
@@ -71,6 +89,7 @@ export default function ComponentsTable({
 
   const currentPage = Math.floor(offset / limit) + 1;
   const totalPages = Math.ceil(total / limit);
+  const colCount = columns.length;
 
   return (
     <>
@@ -100,7 +119,7 @@ export default function ComponentsTable({
                     </span>
                   )}
                   {sortKey === col.key && (
-                    <span className="ml-1">{sortDir === "asc" ? "\u25B2" : "\u25BC"}</span>
+                    <span className="ml-1">{sortDir === "asc" ? "▲" : "▼"}</span>
                   )}
                 </th>
               ))}
@@ -124,11 +143,16 @@ export default function ComponentsTable({
                 <td className="px-4 py-2 text-gray-600">
                   {c.licenses.length > 0 ? c.licenses.join(", ") : "-"}
                 </td>
+                {hasSourceColumn && (
+                  <td className="px-4 py-2 text-gray-600">
+                    {c.annex_b_source || "-"}
+                  </td>
+                )}
               </tr>
             ))}
             {sorted.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-gray-500">
+                <td colSpan={colCount} className="px-4 py-8 text-center text-gray-500">
                   No components found.
                 </td>
               </tr>

@@ -1,6 +1,6 @@
 # SBOM Dashboard
 
-A full-stack application that parses and visualizes CycloneDX Software Bill of Materials (SBOM) files. It provides a dashboard with summary statistics, component breakdowns by type, license coverage metrics, and a searchable/filterable components table with pagination.
+A web dashboard that shows what is inside a container image and which of those packages have known security problems. It reads CycloneDX SBOM files produced by Syft, optionally enriched with Trivy vulnerability data, and presents the components and CVEs in a browser.
 
 <details>
   <summary>Table of Contents</summary>
@@ -15,15 +15,16 @@ A full-stack application that parses and visualizes CycloneDX Software Bill of M
   - [API Endpoints](#api-endpoints)
   - [Configuration](#configuration)
   - [Demo Data](#demo-data)
+  - [Enriching SBOMs](#enriching-sboms)
   - [Screenshots](#screenshots)
 
 </details>
 
 ## Overview
 
-The SBOM Dashboard reads CycloneDX JSON files (`.cdx.json`) from a local filesystem directory (`STORAGE_PATH`). A FastAPI backend parses the SBOM data and exposes it through a REST API. A Next.js frontend provides an interactive dashboard where users can select an SBOM, view summary cards (total components, libraries, files, license coverage, PURL availability), filter components by type or name, and paginate through results.
+The dashboard reads CycloneDX JSON files (`.cdx.json`) from a local directory (`STORAGE_PATH`). A FastAPI backend parses each file and exposes it over a REST API. A Next.js frontend lets you pick an SBOM and see two views: the **Components** tab (every package, its version, its license, and which package manager installed it) and the **Vulnerabilities** tab (every CVE, the affected package, the severity, and a link to the detail popup).
 
-![SBOM Dashboard](docs/screenshots/dashboard-libraries.png)
+![SBOM Dashboard](docs/screenshots/dashboard-overview.png)
 
 ## Architecture
 
@@ -57,14 +58,12 @@ SBOM files are generated in CI using the [`anchore/sbom-action`](https://github.
 
 ## Features
 
-- **SBOM Selection** -- dropdown to switch between multiple SBOMs when more than one is available
-- **Metadata Panel** -- displays image name, version, generation timestamp, and the tool used to create the SBOM
-- **Summary Cards** -- total components, library count, file count, license coverage percentage, and PURL availability
-- **Component Type Breakdown** -- visual count of components grouped by CycloneDX type (library, file, framework, etc.)
-- **Filterable Components Table** -- filter by component type and search by name
-- **Pagination** -- paginated results for large SBOMs (100 components per page)
-- **License Extraction** -- parses and displays SPDX license IDs for each component
-- **Filesystem Storage with Caching** -- reads SBOM files from a configurable directory with in-memory caching (5-minute TTL)
+- **SBOM picker** -- switch between multiple SBOMs from a dropdown.
+- **Metadata panel** -- image name, version, scan timestamp, and the tool that produced the SBOM. If the file was enriched with Annex B compliance metadata, that block also shows here.
+- **Summary cards** -- total components, library count, file count, license coverage, PURL availability, and severity counts (critical, high, medium, low, unknown) when vulnerabilities are present.
+- **Components tab** -- searchable table of every package with its version, type, license, occurrences, and the package manager it came from (apt, npm, pypi, ...).
+- **Vulnerabilities tab** -- one row per CVE with severity, CVSS, affected package, installed-via tag, who published the advisory, fix availability, and a description. Click a row to open a detail popup with full ratings, advisories, and CWEs.
+- **Filesystem storage with caching** -- the backend reads files from a configurable directory and caches parsed SBOMs for five minutes.
 
 ## Local Development
 
@@ -126,9 +125,12 @@ SBOM files should follow the structure: `<repo>/<tag>.cdx.json` (e.g., `myorg/my
 
 | Method | Path | Description |
 |--------|------|-------------|
-| `GET` | `/api/sboms` | List available SBOMs (returns id, image, version, timestamp) |
-| `GET` | `/api/sboms/{sbom_id}/summary` | Get summary statistics (component counts, license coverage, metadata) |
-| `GET` | `/api/sboms/{sbom_id}/components` | Get components list (supports `type`, `name`, `offset`, `limit` query params) |
+| `GET` | `/api/sboms` | List available SBOMs (returns id, image, version, timestamp, which views exist) |
+| `GET` | `/api/sboms/{sbom_id}/summary` | Get summary statistics (component counts, license coverage, vulnerability counts, metadata) |
+| `GET` | `/api/sboms/{sbom_id}/components` | Get raw components list (supports `type`, `name`, `offset`, `limit` query params) |
+| `GET` | `/api/sboms/{sbom_id}/components/grouped` | Same as above, but deduplicated by `(name, version, type)` with aggregated purls, licenses, and counts |
+| `GET` | `/api/sboms/{sbom_id}/vulnerabilities` | List CVEs found in this SBOM (one row per CVE, with affected components) |
+| `GET` | `/api/sboms/{sbom_id}/vulnerabilities/{cve_id}` | Full detail for a single CVE — ratings, advisories, CWEs, every affected package |
 
 The `sbom_id` is a path-style identifier derived from the file path relative to `STORAGE_PATH`. For example, a file at `myorg/myimage/v1.0.0.cdx.json` has the `sbom_id` of `myorg/myimage/v1.0.0`.
 
@@ -150,16 +152,54 @@ The backend recursively scans `STORAGE_PATH` for all `.cdx.json` files. The in-m
 
 ## Demo Data
 
-The `data-sample/` directory is included in the repository and contains a sample CycloneDX SBOM file (`sbom.cdx.json`). This allows running the application immediately after cloning without needing to generate or download SBOM data.
+The `data-sample/` directory is included in the repository so the dashboard works the moment you run `docker compose up`. It contains:
 
-To generate your own SBOM files, use a tool like [Syft](https://github.com/anchore/syft):
+- `sbom.cdx.json` -- a raw Syft SBOM used as the default demo.
+- `ubuntu/24.04.cdx.json` -- a raw Syft SBOM for Ubuntu 24.04.
+- `ubuntu/24.04.trivy.cdx.json` -- the same SBOM after a Trivy scan.
+- `ubuntu/24.04.enriched.cdx.json` -- the merged file with both vulnerabilities and Annex B metadata. Select **ubuntu:24.04** in the dropdown to see the Vulnerabilities tab in action.
+
+To add your own SBOM, drop any `.cdx.json` file into `data-sample/`. The simplest way to produce one is with [Syft](https://github.com/anchore/syft):
 
 ```bash
-syft <image> -o cyclonedx-json > data-sample/sbom.cdx.json
+syft <image> -o cyclonedx-json > data-sample/<image>.cdx.json
 ```
+
+A raw Syft SBOM gives you the Components tab. To light up the Vulnerabilities tab too, see [Enriching SBOMs](#enriching-sboms) below.
+
+## Enriching SBOMs
+
+The Vulnerabilities tab needs an SBOM that has been merged with a Trivy vulnerability scan. The repo provides two ways to produce one.
+
+### Using the GitHub composite action (recommended for CI)
+
+The action at [`actions/enrich-sbom/`](actions/enrich-sbom/) takes a Syft SBOM, runs Trivy against it, merges the vulnerabilities, and injects Annex B compliance properties. From any GitHub workflow:
+
+```yaml
+- uses: amir-bialek/sbom-viewer/actions/enrich-sbom@enrich-sbom-v1.0.0
+  with:
+    syft-sbom-path: path/to/syft.cdx.json
+    output-path: path/to/enriched.cdx.json
+    enable-trivy: 'true'
+    enable-annex-b: 'true'
+```
+
+The `enable-trivy` and `enable-annex-b` flags are independent, so you can opt into either step on its own.
+
+### Using the scripts directly (for local testing)
+
+Both enrichment steps are plain Python scripts under [`scripts/`](scripts/) with no dependencies beyond the standard library. Run them yourself after producing a Trivy SBOM:
+
+```bash
+trivy sbom syft.cdx.json -f cyclonedx -o trivy.cdx.json
+python3 scripts/merge-trivy-vulns.py syft.cdx.json trivy.cdx.json merged.cdx.json
+python3 scripts/inject-annex-b.py merged.cdx.json enriched.cdx.json
+```
+
+The merge step refuses to write output if Trivy mutated the SBOM identity (`serialNumber`, `specVersion`, `metadata`, `components`, or `dependencies`). That is intentional -- it protects the inventory in `syft.cdx.json` from being silently rewritten by the scanner.
 
 ## Screenshots
 
-![Operating system filter](docs/screenshots/dashboard-os-filter.png)
+The Vulnerabilities tab, showing CVEs from Trivy with the affected package, the package manager it came from, and the advisory source:
 
-![File type filter](docs/screenshots/dashboard-file-filter.png)
+![Vulnerabilities tab](docs/screenshots/dashboard-vulnerabilities.png)

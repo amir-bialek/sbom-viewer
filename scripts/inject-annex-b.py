@@ -6,16 +6,16 @@ import sys
 
 
 PURL_SOURCE_MAP = {
-    "deb": "OS package (Debian/Ubuntu)",
-    "rpm": "OS package (RPM)",
-    "apk": "OS package (Alpine)",
-    "pypi": "Open source Python library",
-    "npm": "Open source npm library",
-    "golang": "Open source Go library",
-    "cargo": "Open source Rust crate",
-    "gem": "Open source Ruby gem",
-    "maven": "Open source Java/Maven library",
-    "generic": "Open source library (generic)",
+    "deb": "apt",
+    "rpm": "rpm",
+    "apk": "apk",
+    "pypi": "pypi",
+    "npm": "npm",
+    "golang": "golang",
+    "cargo": "cargo",
+    "gem": "gem",
+    "maven": "maven",
+    "generic": "generic",
 }
 
 
@@ -48,13 +48,13 @@ def derive_source(component):
     if eco is not None:
         if eco in PURL_SOURCE_MAP:
             return PURL_SOURCE_MAP[eco]
-        return f"Open source library ({eco})"
+        return eco
 
     for prop in component.get("properties", []) or []:
         if prop.get("name") == "syft:package:type":
-            return f"Open source library ({prop.get('value')})"
+            return prop.get("value") or "generic"
 
-    return "Unknown source"
+    return "generic"
 
 
 def product_name(image_name):

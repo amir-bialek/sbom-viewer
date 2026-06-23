@@ -1,0 +1,29 @@
+- generic [ref=e1]:
+  - banner [ref=e2]:
+    - heading "SBOM Dashboard" [level=1] [ref=e3]
+  - main [ref=e4]:
+    - generic [ref=e5]:
+      - generic [ref=e6]:
+        - generic [ref=e7]
+        - generic [ref=e23]
+      - generic [ref=e28]:
+        - heading "Metadata" [level=3] [ref=e29]
+        - generic [ref=e30]
+      - generic [ref=e43]:
+        - generic [ref=e44]
+        - generic [ref=e49]
+        - generic [ref=e54]
+        - generic [ref=e59]
+        - generic [ref=e64]
+        - generic [ref=e718]
+        - generic [ref=e723]
+        - generic [ref=e728]
+        - generic [ref=e733]
+        - generic [ref=e738]
+      - navigation "Tabs" [ref=e11]:
+        - button "Components" [ref=e12] [cursor=pointer]
+        - button "Vulnerabilities 4" [ref=e743] [cursor=pointer]
+      - generic [ref=e1602]:
+        - generic [ref=e1603]
+        - table [ref=e1610]
+  - alert [ref=e22]
