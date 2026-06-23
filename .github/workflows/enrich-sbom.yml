@@ -1,22 +1,31 @@
-name: Tests
+name: Enrich SBOM Action
 
 on:
   pull_request:
     paths:
       - 'scripts/**'
       - 'actions/**'
-      - '.github/workflows/tests.yml'
+      - '.github/workflows/enrich-sbom.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/**'
+      - 'actions/**'
+      - '.github/workflows/enrich-sbom.yml'
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   unit-tests:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.12'
 
@@ -27,7 +36,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Generate Syft fixture from alpine:3.18
         uses: anchore/sbom-action@v0.24.0
@@ -55,3 +64,35 @@ jobs:
           annex_count=$(jq '[.metadata.properties[]? | select(.name | startswith("imagry:annex-b:"))] | length' enriched.cdx.json)
           echo "vulnerabilities in enriched SBOM: $vuln_count"
           echo "Annex B document-level properties: $annex_count"
+
+  tag-release:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+    needs: [unit-tests, action-self-test]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Extract version from tag
+        run: |
+          LATEST_TAG=$(git tag -l "enrich-sbom-v[0-9]*.[0-9]*.[0-9]*" | sort -V | tail -n 1)
+          echo "Latest tag found: $LATEST_TAG"
+          if [ -z "$LATEST_TAG" ]; then
+              NEW_TAG="enrich-sbom-v1.0.0"
+          else
+              NEW_TAG=$(echo "$LATEST_TAG" | awk -F. 'BEGIN{OFS="."}{$NF+=1;print}')
+          fi
+          echo "NEW_TAG=$NEW_TAG" >> $GITHUB_ENV
+          echo "Generated new tag: $NEW_TAG"
+
+      - name: Configure Git
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action Auto Tag"
+
+      - name: Push Tag
+        run: |
+          git tag ${{ env.NEW_TAG }}
+          git push origin ${{ env.NEW_TAG }}

@@ -19,6 +19,18 @@ PURL_SOURCE_MAP = {
 }
 
 
+# Kept in sync with backend/app/sbom_parser.py:CATALOGER_INSTALLED_VIA_MAP.
+CATALOGER_INSTALLED_VIA_MAP = {
+    "dpkg-db-cataloger": "apt",
+    "apk-db-cataloger": "apk",
+    "rpm-db-cataloger": "rpm",
+    "rpm-file-cataloger": "rpm",
+    "go-module-binary-cataloger": "go-binary",
+    "go-module-file-cataloger": "go-source",
+    "binary-classifier-cataloger": "copied-binary",
+}
+
+
 def load(path):
     with open(path, "r", encoding="utf-8") as f:
         return json.load(f, strict=False)
@@ -55,6 +67,49 @@ def derive_source(component):
             return prop.get("value") or "generic"
 
     return "generic"
+
+
+def _component_found_by(component):
+    for prop in component.get("properties", []) or []:
+        if prop.get("name") == "syft:package:foundBy":
+            return prop.get("value") or ""
+    return ""
+
+
+def _component_location_paths(component):
+    paths = []
+    for prop in component.get("properties", []) or []:
+        name = prop.get("name") or ""
+        if name.startswith("syft:location:") and name.endswith(":path"):
+            value = prop.get("value")
+            if value:
+                paths.append(value)
+    evidence = component.get("evidence") or {}
+    for occ in evidence.get("occurrences", []) or []:
+        loc = occ.get("location")
+        if isinstance(loc, str) and loc:
+            paths.append(loc)
+        elif isinstance(loc, dict):
+            value = loc.get("path") or loc.get("file")
+            if value:
+                paths.append(value)
+    return paths
+
+
+def derive_installed_via(component):
+    found_by = _component_found_by(component)
+    if found_by in CATALOGER_INSTALLED_VIA_MAP:
+        return CATALOGER_INSTALLED_VIA_MAP[found_by]
+
+    paths = _component_location_paths(component)
+    if "python" in found_by and any("/site-packages/" in p for p in paths):
+        return "pip"
+    if ("javascript" in found_by or "npm" in found_by) and any(
+        "/node_modules/" in p for p in paths
+    ):
+        return "npm"
+
+    return "unknown"
 
 
 def product_name(image_name):
@@ -100,6 +155,11 @@ def inject_components(doc):
             component["properties"],
             "imagry:annex-b:source",
             derive_source(component),
+        )
+        upsert_property(
+            component["properties"],
+            "imagry:annex-b:installed-via",
+            derive_installed_via(component),
         )
         updated += 1
     return updated

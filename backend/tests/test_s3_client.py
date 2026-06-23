@@ -83,6 +83,25 @@ class TestS3ClientListAndDownload(unittest.TestCase):
     def test_unknown_id_returns_none(self):
         self.assertIsNone(self.mod.download_sbom("nope", self.mod.View.SBOM))
 
+    def test_list_includes_enriched_only_entries(self):
+        os.makedirs(os.path.join(self.tmp, "enriched-only"), exist_ok=True)
+        shutil.copy(_paths.SAMPLE_MERGED, os.path.join(self.tmp, "enriched-only", "v1.enriched.cdx.json"))
+
+        items = {i["id"]: i for i in self.mod.list_sboms()}
+        self.assertIn("enriched-only/v1", items)
+        eo = items["enriched-only/v1"]
+        self.assertTrue(eo["has_sbom"])
+        self.assertTrue(eo["has_merged"])
+        self.assertFalse(eo["has_trivy"])
+
+    def test_download_sbom_falls_back_to_enriched(self):
+        os.makedirs(os.path.join(self.tmp, "enriched-only"), exist_ok=True)
+        shutil.copy(_paths.SAMPLE_MERGED, os.path.join(self.tmp, "enriched-only", "v1.enriched.cdx.json"))
+
+        data = self.mod.download_sbom("enriched-only/v1", self.mod.View.SBOM)
+        self.assertIsNotNone(data)
+        self.assertIn("vulnerabilities", data)
+
 
 if __name__ == "__main__":
     unittest.main()

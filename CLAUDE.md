@@ -59,12 +59,13 @@ The composite action calls those scripts via `${{ github.action_path }}/../../sc
 
 ## CI topology
 
-[build-push.yml](.github/workflows/build-push.yml) handles two flows:
+[publish-images.yml](.github/workflows/publish-images.yml) handles three flows:
 
 - `pull_request` → builds both `backend` and `frontend` images (matrix), `push: false`.
+- `push` to `main` filtered to `backend/**` and `frontend/**` → a `detect-types` job uses `dorny/paths-filter@v3` to figure out which of `backend/` or `frontend/` changed, then runs the build/push/tag step in a matrix over only those types. Same bump + push behavior as the dispatch flow.
 - `workflow_dispatch` (with `type` input) → bumps `${type}-vX.Y.Z` semver from existing git tags, builds and pushes both `${REPO}:${NEW_TAG}` and `${REPO}:${TYPE}-latest`, then creates and pushes a git tag. Tag-bump rule is `awk -F. 'BEGIN{OFS="."}{$NF+=1;print}'` — patch only.
 
-[tests.yml](.github/workflows/tests.yml) runs only on changes to `scripts/`, `actions/`, or itself. The `action-self-test` job exercises the composite action end-to-end against an alpine:3.18 Syft fixture and asserts the output is valid CycloneDX.
+[enrich-sbom.yml](.github/workflows/enrich-sbom.yml) runs only on changes to `scripts/`, `actions/`, or itself. The `action-self-test` job exercises the composite action end-to-end against an alpine:3.18 Syft fixture and asserts the output is valid CycloneDX. On push to main, the `tag-release` job bumps `enrich-sbom-vX.Y.Z` and pushes the tag.
 
 [scan-image-sbom.yml](.github/workflows/scan-image-sbom.yml) is the user-facing entrypoint: a `workflow_dispatch` that takes a Docker Hub image, generates a Syft SBOM, optionally enriches with Trivy + Annex B, and uploads as an artifact. The `enrich-sbom` action is referenced by a pinned tag (`@enrich-sbom-v1.0.0`), not by `@main` — bump the tag when releasing changes to the action.
 

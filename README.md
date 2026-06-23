@@ -119,19 +119,15 @@ Frontend:
 |----------|-------------|
 | `BACKEND_API_URL` | URL of the backend API (e.g., `http://backend:8000`) |
 
-SBOM files should follow the structure: `<repo>/<tag>.cdx.json` (e.g., `myorg/myimage/v1.0.0.cdx.json`).
+SBOM files follow the structure `<repo>/<tag>.<suffix>` (e.g., `myorg/myimage/v1.0.0.enriched.cdx.json`). The suffix tells the dashboard what is inside the file:
 
-The suffix tells the dashboard what kind of file it is, so use the right one when uploading:
+| Suffix | Contents | Vulnerabilities tab |
+|--------|----------|---------------------|
+| `.cdx.json` | Raw Syft SBOM, no vulnerabilities | Disabled |
+| `.enriched.cdx.json` | Syft SBOM + Trivy vulnerabilities (and optionally Annex B properties) | Enabled |
+| `.trivy.cdx.json` | Standalone Trivy scan output (rarely uploaded on its own) | Enabled |
 
-| Suffix | Meaning |
-|--------|---------|
-| `.cdx.json` | Raw Syft SBOM. Components tab only. |
-| `.trivy.cdx.json` | Trivy vulnerability scan output. |
-| `.enriched.cdx.json` | Syft + Trivy merged (and optionally Annex B). The dashboard auto-prefers this one and enables the Vulnerabilities tab. |
-
-If you upload a merged file using the plain `.cdx.json` suffix, the dashboard will treat it as a raw SBOM and the Vulnerabilities tab will stay disabled.
-
-> **Known issue:** the dashboard currently requires **both** a base `.cdx.json` and a sibling `.enriched.cdx.json` to be uploaded for the same SBOM. An `.enriched.cdx.json` on its own will not appear in the dropdown, and a base `.cdx.json` on its own will appear but keep the Vulnerabilities tab disabled. So today the CI must upload the pair `<tag>.cdx.json` + `<tag>.enriched.cdx.json`. This will be fixed so a lone `.enriched.cdx.json` is treated as a full SBOM with vulnerabilities.
+The dashboard lists an image as soon as one of the first two files is present, so the CI workflow uploads exactly one per image — `.enriched.cdx.json` when Trivy is enabled (the default), `.cdx.json` when Trivy is skipped. Uploading both is harmless; uploading neither hides the image.
 
 ## API Endpoints
 

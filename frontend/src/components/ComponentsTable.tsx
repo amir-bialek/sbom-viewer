@@ -26,7 +26,7 @@ export default function ComponentsTable({
   const [tooltip, setTooltip] = useState<{ text: string; top: number; left: number } | null>(null);
 
   const hasSourceColumn = useMemo(
-    () => components.some((c) => !!c.annex_b_source && c.annex_b_source !== ""),
+    () => components.some((c) => !!c.installed_via && c.installed_via !== ""),
     [components]
   );
 
@@ -78,7 +78,7 @@ export default function ComponentsTable({
           cmp = a.type.localeCompare(b.type);
           break;
         case "source":
-          cmp = (a.annex_b_source || "").localeCompare(b.annex_b_source || "");
+          cmp = (a.installed_via || "").localeCompare(b.installed_via || "");
           break;
         default:
           cmp = 0;
@@ -145,7 +145,7 @@ export default function ComponentsTable({
                 </td>
                 {hasSourceColumn && (
                   <td className="px-4 py-2 text-gray-600">
-                    {c.annex_b_source || "-"}
+                    {c.installed_via || "-"}
                   </td>
                 )}
               </tr>

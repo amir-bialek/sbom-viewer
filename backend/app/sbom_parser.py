@@ -23,6 +23,18 @@ PURL_SOURCE_MAP = {
 }
 
 
+# Kept in sync with scripts/inject-annex-b.py:CATALOGER_INSTALLED_VIA_MAP.
+CATALOGER_INSTALLED_VIA_MAP = {
+    "dpkg-db-cataloger": "apt",
+    "apk-db-cataloger": "apk",
+    "rpm-db-cataloger": "rpm",
+    "rpm-file-cataloger": "rpm",
+    "go-module-binary-cataloger": "go-binary",
+    "go-module-file-cataloger": "go-source",
+    "binary-classifier-cataloger": "copied-binary",
+}
+
+
 def _purl_ecosystem(purl: str) -> str | None:
     if not isinstance(purl, str) or not purl.startswith("pkg:"):
         return None
@@ -43,6 +55,49 @@ def _derive_annex_b_source(component: dict) -> str:
         if prop.get("name") == "syft:package:type":
             return prop.get("value") or ""
     return ""
+
+
+def _component_found_by(component: dict) -> str:
+    for prop in component.get("properties", []) or []:
+        if prop.get("name") == "syft:package:foundBy":
+            return prop.get("value") or ""
+    return ""
+
+
+def _component_location_paths(component: dict) -> list[str]:
+    paths: list[str] = []
+    for prop in component.get("properties", []) or []:
+        name = prop.get("name") or ""
+        if name.startswith("syft:location:") and name.endswith(":path"):
+            value = prop.get("value")
+            if value:
+                paths.append(value)
+    evidence = component.get("evidence") or {}
+    for occ in evidence.get("occurrences", []) or []:
+        loc = occ.get("location")
+        if isinstance(loc, str) and loc:
+            paths.append(loc)
+        elif isinstance(loc, dict):
+            value = loc.get("path") or loc.get("file")
+            if value:
+                paths.append(value)
+    return paths
+
+
+def _derive_installed_via(component: dict) -> str:
+    found_by = _component_found_by(component)
+    if found_by in CATALOGER_INSTALLED_VIA_MAP:
+        return CATALOGER_INSTALLED_VIA_MAP[found_by]
+
+    paths = _component_location_paths(component)
+    if "python" in found_by and any("/site-packages/" in p for p in paths):
+        return "pip"
+    if ("javascript" in found_by or "npm" in found_by) and any(
+        "/node_modules/" in p for p in paths
+    ):
+        return "npm"
+
+    return "unknown"
 
 
 def parse_metadata(data: dict) -> dict:
@@ -75,6 +130,20 @@ def _component_annex_b_source_with_fallback(component: dict) -> str:
     if existing:
         return existing
     return _derive_annex_b_source(component)
+
+
+def _component_installed_via(component: dict) -> str:
+    for prop in component.get("properties", []) or []:
+        if prop.get("name") == f"{ANNEX_B_PREFIX}installed-via":
+            return prop.get("value", "") or ""
+    return ""
+
+
+def _component_installed_via_with_fallback(component: dict) -> str:
+    existing = _component_installed_via(component)
+    if existing:
+        return existing
+    return _derive_installed_via(component)
 
 
 def get_summary(data: dict) -> dict:
@@ -132,6 +201,7 @@ def get_grouped_components(
     for c in filtered:
         key = f"{c.get('name', '')}|||{c.get('version', '')}|||{c.get('type', '')}"
         annex_source = _component_annex_b_source(c)
+        installed_via = _component_installed_via_with_fallback(c)
         if key in groups:
             groups[key]["count"] += 1
             purl = c.get("purl", "")
@@ -142,6 +212,8 @@ def get_grouped_components(
                     groups[key]["licenses"].append(lic)
             if annex_source and not groups[key]["annex_b_source"]:
                 groups[key]["annex_b_source"] = annex_source
+            if installed_via and not groups[key]["installed_via"]:
+                groups[key]["installed_via"] = installed_via
         else:
             purl = c.get("purl", "")
             groups[key] = {
@@ -152,6 +224,7 @@ def get_grouped_components(
                 "purls": [purl] if purl else [],
                 "count": 1,
                 "annex_b_source": annex_source,
+                "installed_via": installed_via,
             }
 
     sorted_groups = sorted(groups.values(), key=lambda g: (-g["count"], g["name"]))
@@ -197,6 +270,7 @@ def get_components(
                 "purl": c.get("purl", ""),
                 "licenses": _extract_licenses(c),
                 "annex_b_source": _component_annex_b_source(c),
+                "installed_via": _component_installed_via_with_fallback(c),
             }
             for c in page
         ],
@@ -294,6 +368,7 @@ def parse_vulnerabilities(data: dict) -> list[dict]:
                 "purl": comp.get("purl", ""),
                 "bom_ref": ref,
                 "annex_b_source": _component_annex_b_source_with_fallback(comp),
+                "installed_via": _component_installed_via_with_fallback(comp),
             })
 
         rows.append({
@@ -341,6 +416,7 @@ def get_vulnerability_detail(data: dict, cve_id: str) -> dict | None:
                     "purl": comp.get("purl", ""),
                     "bom_ref": ref,
                     "annex_b_source": _component_annex_b_source_with_fallback(comp),
+                    "installed_via": _component_installed_via_with_fallback(comp),
                     "versions": a.get("versions", []) or [],
                 })
 

@@ -92,7 +92,7 @@ function installedViaValues(v: Vulnerability): string[] {
   const seen = new Set<string>();
   const out: string[] = [];
   for (const c of v.affected_components) {
-    const s = c.annex_b_source || "";
+    const s = c.installed_via || "";
     if (s && !seen.has(s)) {
       seen.add(s);
       out.push(s);

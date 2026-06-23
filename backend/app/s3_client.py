@@ -49,36 +49,49 @@ def _path_for(sbom_id: str, view: View) -> Path:
     return STORAGE_PATH / f"{sbom_id}{_VIEW_SUFFIX[view]}"
 
 
+_SUFFIX_BY_LENGTH = (
+    (".trivy.cdx.json", View.TRIVY),
+    (".enriched.cdx.json", View.MERGED),
+    (".cdx.json", View.SBOM),
+)
+
+
 def list_sboms() -> list[dict]:
-    results = []
     if not STORAGE_PATH.exists():
-        return results
+        return []
 
-    for f in sorted(STORAGE_PATH.rglob("*.cdx.json")):
-        name = f.name
-        if name.endswith(".trivy.cdx.json") or name.endswith(".enriched.cdx.json"):
-            continue
+    grouped: dict[str, dict[View, Path]] = {}
+    for f in STORAGE_PATH.rglob("*.cdx.json"):
+        rel = str(f.relative_to(STORAGE_PATH))
+        for suffix, view in _SUFFIX_BY_LENGTH:
+            if rel.endswith(suffix):
+                sbom_id = rel[: -len(suffix)]
+                grouped.setdefault(sbom_id, {})[view] = f
+                break
 
-        rel = f.relative_to(STORAGE_PATH)
-        sbom_id = str(rel.with_suffix("").with_suffix(""))
+    results = []
+    for sbom_id in sorted(grouped):
+        paths = grouped[sbom_id]
+        has_raw = View.SBOM in paths
+        has_merged = View.MERGED in paths
+        has_trivy = View.TRIVY in paths
+
+        ts_view = View.SBOM if has_raw else View.MERGED if has_merged else View.TRIVY
+        data = _load_and_cache((sbom_id, ts_view.value), paths[ts_view])
+        timestamp = data.get("metadata", {}).get("timestamp", "")
+
         parts = sbom_id.rsplit("/", 1)
         image = parts[0] if len(parts) > 1 else sbom_id
         version = parts[1] if len(parts) > 1 else ""
-
-        data = _load_and_cache((sbom_id, View.SBOM.value), f)
-        timestamp = data.get("metadata", {}).get("timestamp", "")
-
-        trivy_path = _path_for(sbom_id, View.TRIVY)
-        merged_path = _path_for(sbom_id, View.MERGED)
 
         results.append({
             "id": sbom_id,
             "image": image,
             "version": version,
             "timestamp": timestamp,
-            "has_sbom": True,
-            "has_trivy": trivy_path.exists(),
-            "has_merged": merged_path.exists(),
+            "has_sbom": has_raw or has_merged,
+            "has_trivy": has_trivy,
+            "has_merged": has_merged,
         })
 
     return results
@@ -86,8 +99,10 @@ def list_sboms() -> list[dict]:
 
 def download_sbom(sbom_id: str, view: View = View.SBOM) -> dict | None:
     path = _path_for(sbom_id, view)
-    if not path.exists():
-        return None
-
-    key = (sbom_id, view.value)
-    return _load_and_cache(key, path)
+    if path.exists():
+        return _load_and_cache((sbom_id, view.value), path)
+    if view == View.SBOM:
+        fallback = _path_for(sbom_id, View.MERGED)
+        if fallback.exists():
+            return _load_and_cache((sbom_id, View.MERGED.value), fallback)
+    return None

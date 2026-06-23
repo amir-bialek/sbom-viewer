@@ -46,6 +46,7 @@ export interface SbomComponent {
   purl: string;
   licenses: string[];
   annex_b_source?: string;
+  installed_via?: string;
 }
 
 export interface ComponentsResponse {
@@ -63,6 +64,7 @@ export interface GroupedComponent {
   purls: string[];
   count: number;
   annex_b_source?: string;
+  installed_via?: string;
 }
 
 export interface GroupedComponentsResponse {
@@ -78,6 +80,7 @@ export interface AffectedComponent {
   purl: string;
   bom_ref: string;
   annex_b_source?: string;
+  installed_via?: string;
   versions?: { version?: string; status?: string }[];
 }
 
