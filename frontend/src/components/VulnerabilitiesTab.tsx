@@ -331,7 +331,7 @@ export default function VulnerabilitiesTab({
                 </th>
                 <th
                   onClick={() => handleSort("fix")}
-                  className="text-left px-4 py-3 font-medium text-gray-700 cursor-pointer select-none hover:bg-gray-100"
+                  className="text-left px-4 py-3 font-medium text-gray-700 cursor-pointer select-none hover:bg-gray-100 max-w-[12rem]"
                 >
                   Fix
                   {sortIndicator("fix")}
@@ -393,7 +393,7 @@ export default function VulnerabilitiesTab({
                       <td className="px-4 py-2 text-gray-600">
                         {formatDate(v.published)}
                       </td>
-                      <td className="px-4 py-2 text-gray-700">
+                      <td className="px-4 py-2 text-gray-700 max-w-[12rem] truncate" title={v.fixed_version || undefined}>
                         {v.fixed_version ? (
                           <span className="text-green-700">
                             {v.fixed_version}
