@@ -323,11 +323,14 @@ def pick_severity(ratings: list[dict], source_name: str | None) -> tuple[str, fl
     return ("", cvss)
 
 
-def _fixed_version_from_affects(affects: list[dict]) -> str:
-    for a in affects or []:
+def _fixed_version(vuln: dict) -> str:
+    for a in vuln.get("affects", []) or []:
         for v in a.get("versions", []) or []:
             if v.get("status") == "unaffected" and v.get("version"):
                 return v["version"]
+    rec = vuln.get("recommendation")
+    if isinstance(rec, str):
+        return rec.strip()
     return ""
 
 
@@ -376,7 +379,7 @@ def parse_vulnerabilities(data: dict) -> list[dict]:
             "severity": severity,
             "score": score,
             "source": source_name or "",
-            "fixed_version": _fixed_version_from_affects(v.get("affects", [])),
+            "fixed_version": _fixed_version(v),
             "description": v.get("description", ""),
             "published": v.get("published", ""),
             "updated": v.get("updated", ""),
@@ -425,7 +428,7 @@ def get_vulnerability_detail(data: dict, cve_id: str) -> dict | None:
                 "severity": severity,
                 "score": score,
                 "source": source_name or "",
-                "fixed_version": _fixed_version_from_affects(v.get("affects", [])),
+                "fixed_version": _fixed_version(v),
                 "description": v.get("description", ""),
                 "published": v.get("published", ""),
                 "updated": v.get("updated", ""),
